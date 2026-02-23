@@ -1,8 +1,7 @@
-
 {
   "name": "vercel-deployer",
   "version": "2.0.0",
-  "description": "Deploy website HTML/CSS ke Vercel tanpa perlu akun",
+  "description": "Deploy website HTML/CSS ke Vercel tanpa perlu akun + Supabase integration",
   "main": "api/deploy.js",
   "scripts": {
     "dev": "vercel dev",
@@ -13,11 +12,13 @@
     "vercel",
     "deployer",
     "static-site",
-    "html-css"
+    "html-css",
+    "supabase"
   ],
   "author": "Ardi 7HF3",
   "license": "MIT",
   "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
     "axios": "^1.6.2",
     "multer": "^1.4.5-lts.1",
     "adm-zip": "^0.5.10"
