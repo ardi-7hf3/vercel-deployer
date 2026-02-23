@@ -1,1 +1,31 @@
 
+{
+  "name": "vercel-deployer",
+  "version": "2.0.0",
+  "description": "Deploy website HTML/CSS ke Vercel tanpa perlu akun",
+  "main": "api/deploy.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod",
+    "start": "vercel start"
+  },
+  "keywords": [
+    "vercel",
+    "deployer",
+    "static-site",
+    "html-css"
+  ],
+  "author": "Ardi 7HF3",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.2",
+    "multer": "^1.4.5-lts.1",
+    "adm-zip": "^0.5.10"
+  },
+  "devDependencies": {
+    "vercel": "^32.5.0"
+  },
+  "engines": {
+    "node": ">=18.x"
+  }
+}
