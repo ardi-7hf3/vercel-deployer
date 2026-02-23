@@ -4,284 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vercel Deployer - Deploy Website Gratis</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        
-        .container {
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            width: 100%;
-            max-width: 600px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-        
-        h1 {
-            color: #333;
-            margin-bottom: 10px;
-            text-align: center;
-            font-size: 2em;
-        }
-        
-        .subtitle {
-            color: #666;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .url-preview {
-            background: #f5f5f5;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-            font-size: 18px;
-            text-align: center;
-            border: 2px solid #e0e0e0;
-        }
-        
-        .url-preview span {
-            color: #667eea;
-            font-weight: bold;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #555;
-            font-weight: 500;
-        }
-        
-        input[type="text"] {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: all 0.3s;
-        }
-        
-        input[type="text"]:focus {
-            border-color: #667eea;
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-        
-        .file-upload {
-            border: 2px dashed #ddd;
-            border-radius: 10px;
-            padding: 30px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            background: #fafafa;
-        }
-        
-        .file-upload:hover {
-            border-color: #667eea;
-            background: #f8f9ff;
-        }
-        
-        .file-upload i {
-            font-size: 48px;
-            color: #667eea;
-            margin-bottom: 10px;
-            display: block;
-        }
-        
-        .file-upload small {
-            color: #999;
-            display: block;
-            margin-top: 10px;
-        }
-        
-        button {
-            width: 100%;
-            padding: 15px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 18px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        button:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-        }
-        
-        button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        
-        .loading {
-            display: none;
-            text-align: center;
-            margin: 20px 0;
-            padding: 20px;
-            background: #f8f9ff;
-            border-radius: 10px;
-        }
-        
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .result {
-            display: none;
-            background: #e8f5e9;
-            border-radius: 10px;
-            padding: 25px;
-            margin-top: 20px;
-            text-align: center;
-            border: 2px solid #4caf50;
-        }
-        
-        .result h3 {
-            color: #2e7d32;
-            margin-bottom: 10px;
-        }
-        
-        .result a {
-            color: #2e7d32;
-            font-weight: bold;
-            text-decoration: none;
-            word-break: break-all;
-            font-size: 18px;
-            display: inline-block;
-            padding: 10px 20px;
-            background: white;
-            border-radius: 5px;
-            margin-top: 10px;
-        }
-        
-        .result a:hover {
-            text-decoration: underline;
-            background: #f5f5f5;
-        }
-        
-        .error {
-            background: #ffebee;
-            color: #c62828;
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 20px;
-            display: none;
-            border: 2px solid #ef5350;
-        }
-        
-        .file-info {
-            margin-top: 10px;
-            font-size: 14px;
-            color: #666;
-        }
-        
-        .success-icon {
-            font-size: 60px;
-            margin-bottom: 10px;
-        }
-        
-        .requirements {
-            background: #f5f5f5;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 20px 0;
-            font-size: 14px;
-        }
-        
-        .requirements h4 {
-            margin-bottom: 10px;
-            color: #555;
-        }
-        
-        .requirements ul {
-            list-style: none;
-            padding-left: 0;
-        }
-        
-        .requirements li {
-            margin-bottom: 5px;
-            padding-left: 20px;
-            position: relative;
-        }
-        
-        .requirements li:before {
-            content: "✓";
-            color: #4caf50;
-            position: absolute;
-            left: 0;
-        }
-        
-        .footer {
-            margin-top: 30px;
-            text-align: center;
-            color: #999;
-            font-size: 13px;
-        }
-        
-        .footer a {
-            color: #667eea;
-            text-decoration: none;
-        }
-        
-        .footer a:hover {
-            text-decoration: underline;
-        }
-        
-        .counter {
-            text-align: right;
-            font-size: 12px;
-            color: #999;
-            margin-top: 5px;
-        }
-        
-        .example-files {
-            margin-top: 10px;
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
-        
-        .example-file {
-            background: #f0f0f0;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 12px;
-            color: #666;
-        }
-    </style>
+    <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
     <div class="container">
@@ -310,7 +33,7 @@
         
         <form id="deployForm">
             <div class="form-group">
-                <label>Nama Website:</label>
+                <label><i>🔤</i> Nama Website:</label>
                 <input 
                     type="text" 
                     id="subdomain" 
@@ -323,7 +46,13 @@
             </div>
             
             <div class="form-group">
-                <label>Upload File HTML/CSS (ZIP):</label>
+                <label><i>📧</i> Email (Opsional):</label>
+                <input type="email" id="email" placeholder="email@anda.com">
+                <small style="color: #666;">Untuk notifikasi status deployment</small>
+            </div>
+            
+            <div class="form-group">
+                <label><i>📁</i> Upload File HTML/CSS (ZIP):</label>
                 <div class="file-upload" onclick="document.getElementById('file').click()">
                     <i>📁</i>
                     <div id="fileName">Klik atau drag file ZIP disini</div>
@@ -346,7 +75,20 @@
             <div class="spinner"></div>
             <p><strong>Membangun website Anda...</strong></p>
             <p style="font-size: 14px; color: #666;">Proses: Validasi → Upload → Deploy ke Vercel</p>
-            <p style="font-size: 12px; color: #999; margin-top: 10px;">Mohon tunggu, ini membutuhkan waktu beberapa detik</p>
+            <div class="progress-steps">
+                <div class="step" id="step1">
+                    <span class="dot"></span>
+                    <span>Validasi</span>
+                </div>
+                <div class="step" id="step2">
+                    <span class="dot"></span>
+                    <span>Upload</span>
+                </div>
+                <div class="step" id="step3">
+                    <span class="dot"></span>
+                    <span>Deploy</span>
+                </div>
+            </div>
         </div>
         
         <div class="result" id="result">
@@ -354,9 +96,12 @@
             <h3>Berhasil Deploy!</h3>
             <p>Website Anda sudah live di:</p>
             <a id="resultUrl" href="#" target="_blank"></a>
+            <div class="result-actions">
+                <button class="btn-copy" onclick="copyToClipboard()">📋 Copy URL</button>
+                <button class="btn-visit" onclick="visitWebsite()">🌐 Kunjungi</button>
+            </div>
             <p style="margin-top: 15px; font-size: 14px; color: #666;">
-                ⏱️ Website akan aktif dalam 1-2 menit<br>
-                📱 Bisa diakses dari HP dan komputer
+                ⏱️ Website akan aktif dalam 1-2 menit
             </p>
         </div>
         
@@ -364,12 +109,16 @@
         
         <div class="footer">
             <p>© 2024 Vercel Deployer - Gratis untuk semua</p>
-            <p style="font-size: 12px;">
-                <a href="#">Privacy</a> • <a href="#">Terms</a> • <a href="#">Contact</a>
-            </p>
+            <div class="footer-links">
+                <a href="/admin">Admin Panel</a> • 
+                <a href="#">Privacy</a> • 
+                <a href="#">Terms</a> • 
+                <a href="#">Contact</a>
+            </div>
         </div>
     </div>
     
+    <script src="/js/supabase-client.js"></script>
     <script>
         // DOM Elements
         const subdomainInput = document.getElementById('subdomain');
@@ -443,6 +192,7 @@
             e.preventDefault();
             
             const subdomain = document.getElementById('subdomain').value;
+            const email = document.getElementById('email').value;
             const file = document.getElementById('file').files[0];
             
             // Validasi
@@ -479,21 +229,34 @@
             document.getElementById('result').style.display = 'none';
             document.getElementById('error').style.display = 'none';
             
+            // Update progress steps
+            document.getElementById('step1').classList.add('active');
+            
             // Upload ke server
             const formData = new FormData();
             formData.append('subdomain', subdomain);
+            formData.append('email', email || '');
             formData.append('file', file);
             
             try {
+                // Step 2: Upload
+                document.getElementById('step1').classList.add('completed');
+                document.getElementById('step2').classList.add('active');
+                
                 const response = await fetch('/api/deploy', {
                     method: 'POST',
                     body: formData
                 });
                 
+                // Step 3: Deploy
+                document.getElementById('step2').classList.add('completed');
+                document.getElementById('step3').classList.add('active');
+                
                 const data = await response.json();
                 
                 if (data.success) {
                     // Tampilkan hasil sukses
+                    document.getElementById('step3').classList.add('completed');
                     document.getElementById('resultUrl').href = data.url;
                     document.getElementById('resultUrl').textContent = data.url;
                     document.getElementById('result').style.display = 'block';
@@ -506,13 +269,9 @@
                     urlPreview.textContent = 'nama.vercel.app';
                     charCounter.textContent = '0/30 karakter';
                     
-                    // Auto copy ke clipboard
-                    try {
-                        await navigator.clipboard.writeText(data.url);
-                        showTemporaryMessage('URL berhasil dicopy!');
-                    } catch (err) {
-                        console.log('Gagal copy otomatis');
-                    }
+                    // Simpan URL ke session storage
+                    sessionStorage.setItem('lastDeployed', data.url);
+                    
                 } else {
                     showError(data.error || 'Gagal deploy, coba lagi');
                 }
@@ -521,6 +280,11 @@
             } finally {
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('deployBtn').disabled = false;
+                
+                // Reset steps
+                document.querySelectorAll('.step').forEach(step => {
+                    step.classList.remove('active', 'completed');
+                });
             }
         });
         
@@ -535,26 +299,19 @@
             }, 5000);
         }
         
-        function showTemporaryMessage(message) {
-            const info = document.createElement('div');
-            info.textContent = message;
-            info.style.cssText = `
-                position: fixed;
-                bottom: 20px;
-                left: 50%;
-                transform: translateX(-50%);
-                background: #333;
-                color: white;
-                padding: 10px 20px;
-                border-radius: 5px;
-                z-index: 1000;
-            `;
-            document.body.appendChild(info);
-            
-            setTimeout(() => {
-                info.remove();
-            }, 2000);
-        }
+        // Copy to clipboard function
+        window.copyToClipboard = function() {
+            const url = document.getElementById('resultUrl').textContent;
+            navigator.clipboard.writeText(url).then(() => {
+                alert('URL berhasil dicopy!');
+            });
+        };
+        
+        // Visit website function
+        window.visitWebsite = function() {
+            const url = document.getElementById('resultUrl').textContent;
+            window.open(url, '_blank');
+        };
         
         // Drag & drop support
         const dropZone = document.querySelector('.file-upload');
@@ -593,6 +350,12 @@
                 fileInput.dispatchEvent(event);
             }
         }, false);
+        
+        // Check for last deployed URL
+        const lastDeployed = sessionStorage.getItem('lastDeployed');
+        if (lastDeployed) {
+            console.log('Last deployed website:', lastDeployed);
+        }
     </script>
 </body>
-  </html>
+</html>
