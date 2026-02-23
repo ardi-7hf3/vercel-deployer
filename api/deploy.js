@@ -4,6 +4,7 @@ const axios = require('axios');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const { saveDeployment, saveUser } = require('./supabase.js');
 
 // Konfigurasi multer untuk upload file
 const upload = multer({ 
@@ -34,7 +35,7 @@ module.exports = async (req, res) => {
         }
 
         try {
-            const { subdomain } = req.body;
+            const { subdomain, email } = req.body;
             const file = req.file;
 
             // Validasi input
@@ -97,8 +98,24 @@ module.exports = async (req, res) => {
                 }
             }
 
+            // Dapatkan daftar file
+            const allFiles = getAllFiles(extractPath);
+
+            // SIMPAN KE SUPABASE (jika email diberikan)
+            if (email && email.includes('@')) {
+                await saveUser(email);
+            }
+
             // Deploy ke Vercel
             const result = await deployToVercel(extractPath, subdomain);
+
+            // SIMPAN DATA DEPLOYMENT KE SUPABASE
+            await saveDeployment(
+                subdomain, 
+                email || 'anonymous', 
+                allFiles, 
+                'success'
+            );
 
             // Bersihkan file temporary
             fs.rmSync(extractPath, { recursive: true, force: true });
@@ -113,10 +130,19 @@ module.exports = async (req, res) => {
         } catch (error) {
             console.error('Deployment error:', error);
             
+            // SIMPAN ERROR KE SUPABASE
+            if (req.body.subdomain) {
+                await saveDeployment(
+                    req.body.subdomain, 
+                    req.body.email || 'anonymous', 
+                    [], 
+                    'failed'
+                );
+            }
+            
             // Error handling khusus
             if (error.response) {
                 const status = error.response.status;
-                const data = error.response.data;
                 
                 if (status === 403) {
                     return res.status(403).json({ 
@@ -229,4 +255,4 @@ function getAllFiles(dir) {
     });
     
     return results;
-    }
+}
