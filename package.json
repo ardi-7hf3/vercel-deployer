@@ -14,7 +14,7 @@
     "html-css",
     "supabase"
   ],
-  "author": "Ardi 7HF3",
+  "author": "Your Name",
   "license": "MIT",
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
