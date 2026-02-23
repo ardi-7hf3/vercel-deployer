@@ -150,6 +150,20 @@
             flex: 1;
             min-width: 200px;
         }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0,0,0,.1);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -157,8 +171,9 @@
         <!-- Login Form -->
         <div id="loginForm" class="login-form">
             <h2>🔐 Admin Login</h2>
-            <input type="password" id="adminPassword" placeholder="Masukkan password admin">
-            <button onclick="adminLogin()">Login</button>
+            <input type="password" id="adminPassword" placeholder="Masukkan password admin" onkeypress="handleKeyPress(event)">
+            <button onclick="adminLogin()" id="loginBtn">Login</button>
+            <div id="loginError" style="color: red; margin-top: 10px; text-align: center;"></div>
             <p style="text-align: center; margin-top: 15px;">
                 <a href="/">← Kembali ke Beranda</a>
             </p>
@@ -234,9 +249,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         // Konfigurasi Supabase - GANTI DENGAN MILIK ANDA
-        const SUPABASE_URL = 'https://rsrbamothnqyjgixmvyq.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJzcmJhbW90aG5xeWpnaXhtdnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MjI4ODYsImV4cCI6MjA4NzM5ODg4Nn0.6yJrYMc9OlUjAOHeB-BOmYgWZHPGAqbZfzwMEEbF1xc';
-        const ADMIN_PASSWORD = 'ardi666'; // GANTI dengan password Anda
+        const SUPABASE_URL = 'https://your-project.supabase.co';
+        const SUPABASE_ANON_KEY = 'your-anon-key';
         
         const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         let allDeployments = [];
@@ -251,14 +265,55 @@
             }
         }
         
-        // Login
-        function adminLogin() {
+        // Handle Enter key
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                adminLogin();
+            }
+        }
+        
+        // Login dengan verifikasi ke backend
+        async function adminLogin() {
             const password = document.getElementById('adminPassword').value;
-            if (password === ADMIN_PASSWORD) {
-                sessionStorage.setItem('adminLoggedIn', 'true');
-                checkAuth();
-            } else {
-                alert('Password salah!');
+            const loginBtn = document.getElementById('loginBtn');
+            const loginError = document.getElementById('loginError');
+            
+            if (!password) {
+                loginError.textContent = 'Password harus diisi!';
+                return;
+            }
+            
+            // Tampilkan loading
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<span class="loading-spinner"></span> Memverifikasi...';
+            loginError.textContent = '';
+            
+            try {
+                const response = await fetch('/api/verify-admin', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    sessionStorage.setItem('adminLoggedIn', 'true');
+                    checkAuth();
+                } else {
+                    loginError.textContent = data.error || 'Password salah!';
+                    loginBtn.disabled = false;
+                    loginBtn.innerHTML = 'Login';
+                    document.getElementById('adminPassword').value = '';
+                    document.getElementById('adminPassword').focus();
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                loginError.textContent = 'Gagal terhubung ke server';
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = 'Login';
             }
         }
         
@@ -267,12 +322,14 @@
             sessionStorage.removeItem('adminLoggedIn');
             document.getElementById('loginForm').classList.remove('hidden');
             document.getElementById('adminPanel').classList.add('hidden');
+            document.getElementById('adminPassword').value = '';
+            document.getElementById('loginBtn').disabled = false;
+            document.getElementById('loginBtn').innerHTML = 'Login';
         }
         
         // Load data dari Supabase
         async function loadData() {
             try {
-                // Ambil data deployments
                 const { data: deployments, error } = await supabase
                     .from('deployments')
                     .select('*')
@@ -282,3 +339,112 @@
                 if (error) throw error;
                 
                 allDeployments = deployments;
+                filterAndDisplayData();
+                
+                // Hitung stats
+                const total = deployments.length;
+                const today = deployments.filter(d => {
+                    const date = new Date(d.deployed_at).toDateString();
+                    return date === new Date().toDateString();
+                }).length;
+                
+                const success = deployments.filter(d => d.status === 'success').length;
+                const successRate = total > 0 ? ((success / total) * 100).toFixed(1) : 0;
+                
+                const uniqueUsers = new Set(deployments.map(d => d.user_id).filter(Boolean)).size;
+                
+                document.getElementById('totalDeployments').textContent = total;
+                document.getElementById('todayDeployments').textContent = today;
+                document.getElementById('totalUsers').textContent = uniqueUsers;
+                document.getElementById('successRate').textContent = successRate + '%';
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.getElementById('deploymentsBody').innerHTML = 
+                    '<tr><td colspan="6" style="text-align: center; color: red;">Error loading data: ' + error.message + '</td></tr>';
+            }
+        }
+        
+        // Filter dan display data
+        function filterAndDisplayData() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            
+            let filtered = allDeployments;
+            
+            if (searchTerm) {
+                filtered = filtered.filter(d => 
+                    (d.subdomain && d.subdomain.toLowerCase().includes(searchTerm)) ||
+                    (d.user_id && d.user_id.toLowerCase().includes(searchTerm))
+                );
+            }
+            
+            if (statusFilter !== 'all') {
+                filtered = filtered.filter(d => d.status === statusFilter);
+            }
+            
+            const tbody = document.getElementById('deploymentsBody');
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Tidak ada data</td></tr>';
+            } else {
+                tbody.innerHTML = filtered.map(d => `
+                    <tr>
+                        <td><strong>${d.subdomain || '-'}</strong>.vercel.app</td>
+                        <td>${d.user_id || 'Anonymous'}</td>
+                        <td>${d.files_count || 0} files</td>
+                        <td>
+                            <span class="status-badge status-${d.status || 'failed'}">
+                                ${d.status === 'success' ? '✅ Sukses' : '❌ Gagal'}
+                            </span>
+                        </td>
+                        <td>${new Date(d.deployed_at).toLocaleString('id-ID')}</td>
+                        <td>
+                            ${d.status === 'success' ? 
+                                `<a href="https://${d.subdomain}.vercel.app" target="_blank">🔗 Visit</a>` : 
+                                '-'}
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+        
+        // Export ke CSV
+        function exportData() {
+            const headers = ['Subdomain', 'User', 'Files', 'Status', 'Waktu', 'URL'];
+            const rows = allDeployments.map(d => [
+                d.subdomain,
+                d.user_id,
+                d.files_count,
+                d.status,
+                new Date(d.deployed_at).toLocaleString('id-ID'),
+                `https://${d.subdomain}.vercel.app`
+            ]);
+            
+            const csv = [headers, ...rows]
+                .map(row => row.map(cell => `"${cell}"`).join(','))
+                .join('\n');
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `deployments-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+        
+        // Event listeners untuk filter
+        document.getElementById('searchInput').addEventListener('input', filterAndDisplayData);
+        document.getElementById('statusFilter').addEventListener('change', filterAndDisplayData);
+        
+        // Check auth on load
+        checkAuth();
+        
+        // Auto refresh setiap 30 detik
+        setInterval(() => {
+            if (sessionStorage.getItem('adminLoggedIn') === 'true') {
+                loadData();
+            }
+        }, 30000);
+    </script>
+</body>
+</html>
