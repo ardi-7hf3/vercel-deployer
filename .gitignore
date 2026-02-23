@@ -84,8 +84,6 @@ tests/
 __tests__/
 *.test.js
 *.spec.js
-*.test.ts
-*.spec.ts
 
 # Temporary files
 *.tmp
@@ -98,7 +96,11 @@ __tests__/
 
 # Project specific
 !public/index.html
+!public/admin/index.html
+!public/css/style.css
+!public/js/supabase-client.js
 !api/deploy.js
+!api/supabase.js
 !vercel.json
 !package.json
 !README.md
@@ -114,18 +116,3 @@ backups/
 .cache-loader
 .eslintcache
 .stylelintcache
-
-# Environment
-.env.keys
-.env*.keys
-
-# SSL certificates
-*.pem
-*.crt
-*.key
-
-# System files
-*.log
-*.sql
-*.sqlite
-thumbs.db
