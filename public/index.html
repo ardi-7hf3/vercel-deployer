@@ -5,11 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vercel Deployer - Deploy Website Gratis</title>
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        /* Debug panel styling */
+        #debugPanel {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: #00ff00;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-width: 400px;
+            max-height: 300px;
+            overflow: auto;
+            z-index: 9999;
+            display: none;
+        }
+        #debugPanel .close {
+            float: right;
+            cursor: pointer;
+            color: white;
+        }
+        .debug-log {
+            border-bottom: 1px solid #333;
+            padding: 5px;
+            margin: 5px 0;
+        }
+        .debug-log.error {
+            color: #ff6b6b;
+        }
+        .debug-log.success {
+            color: #51cf66;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <h1>🚀 Vercel Deployer</h1>
         <p class="subtitle">Deploy website HTML/CSS gratis, tanpa perlu akun!</p>
+        
+        <!-- Status Banner -->
+        <div id="apiStatus" style="display: none; padding: 10px; margin-bottom: 20px; border-radius: 5px; text-align: center;"></div>
         
         <div class="url-preview">
             Website Anda: <span id="urlPreview">nama.vercel.app</span>
@@ -68,6 +106,9 @@
                 <div id="fileInfo" class="file-info"></div>
             </div>
             
+            <!-- Debug toggle button (hidden by default, tekan Ctrl+Shift+D untuk muncul) -->
+            <button type="button" id="debugToggle" style="display: none;" onclick="toggleDebugPanel()">Debug Panel</button>
+            
             <button type="submit" id="deployBtn">Deploy Website Sekarang 🚀</button>
         </form>
         
@@ -89,6 +130,7 @@
                     <span>Deploy</span>
                 </div>
             </div>
+            <div id="debugProgress" style="margin-top: 10px; font-size: 12px; color: #666;"></div>
         </div>
         
         <div class="result" id="result">
@@ -111,16 +153,75 @@
             <p>© 2024 Vercel Deployer - Gratis untuk semua</p>
             <div class="footer-links">
                 <a href="/admin">Admin Panel</a> • 
+                <a href="#" onclick="showDebugInfo()">Debug</a> • 
                 <a href="#">Privacy</a> • 
-                <a href="#">Terms</a> • 
-                <a href="#">Contact</a>
+                <a href="#">Terms</a>
             </div>
         </div>
     </div>
     
+    <!-- Debug Panel -->
+    <div id="debugPanel">
+        <div class="close" onclick="toggleDebugPanel()">✖</div>
+        <h4 style="color: white; margin-bottom: 10px;">🔍 Debug Info</h4>
+        <div id="debugContent"></div>
+    </div>
+    
     <script src="/js/supabase-client.js"></script>
     <script>
+        // =====================================================
+        // DEBUGGING TOOLS
+        // =====================================================
+        const DEBUG_MODE = true; // Set ke false untuk production
+        
+        // Debug log function
+        function debugLog(message, type = 'info') {
+            if (!DEBUG_MODE) return;
+            
+            const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+            const logMessage = `[${timestamp}] ${message}`;
+            
+            console.log(`%c${logMessage}`, type === 'error' ? 'color: #ff6b6b' : 'color: #51cf66');
+            
+            // Update debug panel
+            const debugContent = document.getElementById('debugContent');
+            if (debugContent) {
+                const logEntry = document.createElement('div');
+                logEntry.className = `debug-log ${type}`;
+                logEntry.textContent = logMessage;
+                debugContent.appendChild(logEntry);
+                debugContent.scrollTop = debugContent.scrollHeight;
+            }
+        }
+        
+        // Toggle debug panel
+        function toggleDebugPanel() {
+            const panel = document.getElementById('debugPanel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        // Show debug info
+        function showDebugInfo() {
+            debugLog('=== DEBUG INFO ===');
+            debugLog('URL: ' + window.location.href);
+            debugLog('User Agent: ' + navigator.userAgent);
+            debugLog('Supabase URL: ' + (typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : 'Not set'));
+            debugLog('Supabase Status: ' + (window.supabase ? 'Loaded' : 'Not loaded'));
+            toggleDebugPanel();
+        }
+        
+        // Keyboard shortcut: Ctrl+Shift+D untuk debug panel
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+                e.preventDefault();
+                toggleDebugPanel();
+                showDebugInfo();
+            }
+        });
+        
+        // =====================================================
         // DOM Elements
+        // =====================================================
         const subdomainInput = document.getElementById('subdomain');
         const urlPreview = document.getElementById('urlPreview');
         const fileInput = document.getElementById('file');
@@ -128,19 +229,19 @@
         const fileInfo = document.getElementById('fileInfo');
         const deployBtn = document.getElementById('deployBtn');
         const charCounter = document.getElementById('charCounter');
+        const apiStatus = document.getElementById('apiStatus');
         
+        // =====================================================
         // Character counter
+        // =====================================================
         subdomainInput.addEventListener('input', function() {
             let value = this.value.toLowerCase();
-            // Hanya allow a-z, 0-9, dan -
             value = value.replace(/[^a-z0-9-]/g, '');
             this.value = value;
             
-            // Update counter
             const len = value.length;
             charCounter.textContent = `${len}/30 karakter`;
             
-            // Visual feedback
             if (len < 3) {
                 charCounter.style.color = '#f44336';
             } else if (len > 30) {
@@ -151,11 +252,12 @@
                 charCounter.style.color = '#999';
             }
             
-            // Update preview
             urlPreview.textContent = value ? `${value}.vercel.app` : 'nama.vercel.app';
         });
         
+        // =====================================================
         // Handle file selection
+        // =====================================================
         fileInput.addEventListener('change', function(e) {
             if (this.files.length > 0) {
                 const file = this.files[0];
@@ -163,22 +265,24 @@
                 const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
                 
                 fileName.innerHTML = `📄 ${file.name} (${fileSizeKB} KB)`;
+                debugLog(`File selected: ${file.name} (${fileSizeMB} MB)`);
                 
-                // Validasi ukuran
                 if (file.size > 10 * 1024 * 1024) {
                     fileInfo.innerHTML = '<span style="color: #f44336;">❌ File terlalu besar! Maksimal 10MB</span>';
                     deployBtn.disabled = true;
+                    debugLog('File too large!', 'error');
                 } else {
-                    // Cek ekstensi file
                     if (!file.name.toLowerCase().endsWith('.zip')) {
                         fileInfo.innerHTML = '<span style="color: #f44336;">❌ File harus berekstensi .zip</span>';
                         deployBtn.disabled = true;
+                        debugLog('Wrong file extension!', 'error');
                     } else {
                         fileInfo.innerHTML = `
                             <span style="color: #4caf50;">✓ File siap diupload</span><br>
                             <small>Ukuran: ${fileSizeMB} MB</small>
                         `;
                         deployBtn.disabled = false;
+                        debugLog('File ready for upload');
                     }
                 }
             } else {
@@ -187,7 +291,48 @@
             }
         });
         
+        // =====================================================
+        // Test API connection on page load
+        // =====================================================
+        async function testApiConnection() {
+            debugLog('Testing API connection...');
+            try {
+                const response = await fetch('/api/deploy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ test: true })
+                });
+                
+                debugLog(`API Response Status: ${response.status}`);
+                
+                if (response.ok) {
+                    apiStatus.style.display = 'block';
+                    apiStatus.style.background = '#d4edda';
+                    apiStatus.style.color = '#155724';
+                    apiStatus.innerHTML = '✅ API Connection OK';
+                } else {
+                    const text = await response.text();
+                    apiStatus.style.display = 'block';
+                    apiStatus.style.background = '#f8d7da';
+                    apiStatus.style.color = '#721c24';
+                    apiStatus.innerHTML = `❌ API Error: ${response.status} - ${text.substring(0, 100)}`;
+                    debugLog(`API Error: ${response.status} - ${text}`, 'error');
+                }
+            } catch (error) {
+                apiStatus.style.display = 'block';
+                apiStatus.style.background = '#f8d7da';
+                apiStatus.style.color = '#721c24';
+                apiStatus.innerHTML = `❌ Cannot connect to API: ${error.message}`;
+                debugLog(`Connection error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Test API on load
+        testApiConnection();
+        
+        // =====================================================
         // Handle form submit
+        // =====================================================
         document.getElementById('deployForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -195,31 +340,39 @@
             const email = document.getElementById('email').value;
             const file = document.getElementById('file').files[0];
             
+            debugLog('=== DEPLOYMENT STARTED ===');
+            debugLog(`Subdomain: ${subdomain}`);
+            debugLog(`Email: ${email || 'not provided'}`);
+            debugLog(`File: ${file ? file.name : 'none'}`);
+            
             // Validasi
             if (!subdomain || !file) {
                 showError('Lengkapi semua field!');
+                debugLog('Validation failed: missing fields', 'error');
                 return;
             }
             
-            // Validasi subdomain
             if (subdomain.length < 3) {
                 showError('Nama website minimal 3 karakter');
+                debugLog('Validation failed: subdomain too short', 'error');
                 return;
             }
             
             if (!/^[a-z0-9-]+$/.test(subdomain)) {
                 showError('Nama website hanya boleh huruf kecil, angka, dan tanda hubung');
+                debugLog('Validation failed: invalid characters', 'error');
                 return;
             }
             
-            // Validasi file
             if (file.size > 10 * 1024 * 1024) {
                 showError('File maksimal 10MB');
+                debugLog('Validation failed: file too large', 'error');
                 return;
             }
             
             if (!file.name.toLowerCase().endsWith('.zip')) {
                 showError('File harus berekstensi .zip');
+                debugLog('Validation failed: wrong file type', 'error');
                 return;
             }
             
@@ -229,37 +382,83 @@
             document.getElementById('result').style.display = 'none';
             document.getElementById('error').style.display = 'none';
             
-            // Update progress steps
             document.getElementById('step1').classList.add('active');
+            document.getElementById('debugProgress').innerHTML = 'Step 1: Validasi...';
+            debugLog('Step 1: Validation passed');
             
-            // Upload ke server
             const formData = new FormData();
             formData.append('subdomain', subdomain);
             formData.append('email', email || '');
             formData.append('file', file);
             
             try {
-                // Step 2: Upload
                 document.getElementById('step1').classList.add('completed');
                 document.getElementById('step2').classList.add('active');
+                document.getElementById('debugProgress').innerHTML = 'Step 2: Uploading to server...';
+                debugLog('Step 2: Sending request to /api/deploy');
                 
+                console.log('Sending request to /api/deploy...');
                 const response = await fetch('/api/deploy', {
                     method: 'POST',
                     body: formData
                 });
                 
-                // Step 3: Deploy
+                debugLog(`Response received with status: ${response.status}`);
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
                 document.getElementById('step2').classList.add('completed');
                 document.getElementById('step3').classList.add('active');
+                document.getElementById('debugProgress').innerHTML = 'Step 3: Processing response...';
                 
-                const data = await response.json();
+                // CEK RESPONSE STATUS
+                if (!response.ok) {
+                    const responseText = await response.text();
+                    console.error('Error response text:', responseText);
+                    debugLog(`Server error: ${response.status} - ${responseText.substring(0, 200)}`, 'error');
+                    
+                    // Coba parse sebagai JSON dulu
+                    try {
+                        const errorData = JSON.parse(responseText);
+                        throw new Error(errorData.error || `Server error: ${response.status}`);
+                    } catch (jsonError) {
+                        // Kalau bukan JSON, tampilkan sebagai HTML error
+                        if (responseText.includes('<!DOCTYPE html>')) {
+                            // Extract judul error dari HTML
+                            const titleMatch = responseText.match(/<title>(.*?)<\/title>/);
+                            const errorTitle = titleMatch ? titleMatch[1] : 'Unknown error';
+                            throw new Error(`Server returned HTML page: ${errorTitle}. API endpoint mungkin tidak ditemukan.`);
+                        } else {
+                            throw new Error(`Server error (${response.status}): ${responseText.substring(0, 100)}`);
+                        }
+                    }
+                }
+                
+                // PARSE JSON
+                document.getElementById('debugProgress').innerHTML = 'Parsing JSON response...';
+                debugLog('Parsing JSON response');
+                
+                let data;
+                try {
+                    const responseText = await response.text();
+                    console.log('Response text:', responseText);
+                    data = JSON.parse(responseText);
+                } catch (parseError) {
+                    debugLog(`JSON parse error: ${parseError.message}`, 'error');
+                    throw new Error('Server returned invalid JSON response');
+                }
+                
+                debugLog(`Response data: ${JSON.stringify(data)}`);
                 
                 if (data.success) {
-                    // Tampilkan hasil sukses
                     document.getElementById('step3').classList.add('completed');
+                    document.getElementById('debugProgress').innerHTML = '✅ Deployment successful!';
+                    
                     document.getElementById('resultUrl').href = data.url;
                     document.getElementById('resultUrl').textContent = data.url;
                     document.getElementById('result').style.display = 'block';
+                    
+                    debugLog(`✅ Deployment successful! URL: ${data.url}`);
                     
                     // Reset form
                     document.getElementById('deployForm').reset();
@@ -269,51 +468,62 @@
                     urlPreview.textContent = 'nama.vercel.app';
                     charCounter.textContent = '0/30 karakter';
                     
-                    // Simpan URL ke session storage
                     sessionStorage.setItem('lastDeployed', data.url);
                     
                 } else {
-                    showError(data.error || 'Gagal deploy, coba lagi');
+                    debugLog(`Deployment failed: ${data.error}`, 'error');
+                    showError(data.error || 'Gagal deploy');
                 }
             } catch (error) {
+                console.error('Fatal error:', error);
+                debugLog(`Fatal error: ${error.message}`, 'error');
+                document.getElementById('debugProgress').innerHTML = `❌ Error: ${error.message}`;
                 showError('Gagal terhubung ke server: ' + error.message);
             } finally {
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('deployBtn').disabled = false;
                 
-                // Reset steps
-                document.querySelectorAll('.step').forEach(step => {
-                    step.classList.remove('active', 'completed');
-                });
+                // Reset steps after 3 seconds
+                setTimeout(() => {
+                    document.querySelectorAll('.step').forEach(step => {
+                        step.classList.remove('active', 'completed');
+                    });
+                    document.getElementById('debugProgress').innerHTML = '';
+                }, 3000);
             }
         });
         
+        // =====================================================
+        // Helper functions
+        // =====================================================
         function showError(message) {
             const errorDiv = document.getElementById('error');
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
+            debugLog(`Error shown to user: ${message}`, 'error');
             
-            // Auto hide after 5 seconds
             setTimeout(() => {
                 errorDiv.style.display = 'none';
-            }, 5000);
+            }, 7000); // Lebih lama biar kebaca
         }
         
-        // Copy to clipboard function
         window.copyToClipboard = function() {
             const url = document.getElementById('resultUrl').textContent;
             navigator.clipboard.writeText(url).then(() => {
                 alert('URL berhasil dicopy!');
+                debugLog('URL copied to clipboard');
             });
         };
         
-        // Visit website function
         window.visitWebsite = function() {
             const url = document.getElementById('resultUrl').textContent;
             window.open(url, '_blank');
+            debugLog(`Opening URL: ${url}`);
         };
         
+        // =====================================================
         // Drag & drop support
+        // =====================================================
         const dropZone = document.querySelector('.file-upload');
         
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -345,17 +555,38 @@
             
             if (files.length > 0) {
                 fileInput.files = files;
-                // Trigger change event
                 const event = new Event('change', { bubbles: true });
                 fileInput.dispatchEvent(event);
+                debugLog(`File dropped: ${files[0].name}`);
             }
         }, false);
         
+        // =====================================================
         // Check for last deployed URL
+        // =====================================================
         const lastDeployed = sessionStorage.getItem('lastDeployed');
         if (lastDeployed) {
             console.log('Last deployed website:', lastDeployed);
+            debugLog(`Last deployed: ${lastDeployed}`);
         }
+        
+        // =====================================================
+        // Network status monitor
+        // =====================================================
+        window.addEventListener('online', () => {
+            debugLog('Network: online');
+            apiStatus.style.display = 'block';
+            apiStatus.style.background = '#d4edda';
+            apiStatus.innerHTML = '✅ Network connected';
+            setTimeout(() => { apiStatus.style.display = 'none'; }, 3000);
+        });
+        
+        window.addEventListener('offline', () => {
+            debugLog('Network: offline', 'error');
+            apiStatus.style.display = 'block';
+            apiStatus.style.background = '#f8d7da';
+            apiStatus.innerHTML = '❌ Network disconnected';
+        });
     </script>
 </body>
 </html>
